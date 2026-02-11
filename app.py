@@ -58,7 +58,7 @@ def get_loja_data():
                 data['bannermenor1_url'] = get_img_url(data.get('bannermenor1'))
                 data['bannermenor2_url'] = get_img_url(data.get('bannermenor2'))
                 
-                # Senha do Admin (Assumindo que o campo no Directus é 'senha_admin')
+                # Senha do Admin
                 data['senha_admin'] = data.get('senha_admin') 
 
                 # Mapeamento do layout
@@ -180,8 +180,8 @@ def case_detalhe(slug):
 
 # --- ROTAS ADMIN (Autenticação e Escrita) ---
 
-# Rota de Login (Substitui o acesso direto)
-@app.route('/admin', methods=['GET', 'POST'])
+# Rota de Login (AGORA DENTRO DE /tecnologia)
+@app.route('/tecnologia/admin', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         senha_digitada = request.form.get('senha')
@@ -190,11 +190,10 @@ def admin_login():
         # Verifica a senha cadastrada no Directus
         if loja.get('senha_admin') and senha_digitada == loja.get('senha_admin'):
             session['admin_logged_in'] = True
-            return redirect('/admin/painel')
+            return redirect('/tecnologia/admin/painel')
         else:
             flash("Senha incorreta!", "error")
     
-    # Template simples de login embutido
     login_html = """
     <!DOCTYPE html>
     <html lang="pt-br">
@@ -227,11 +226,10 @@ def admin_login():
     """
     return render_template_string(login_html)
 
-@app.route('/admin/painel')
+@app.route('/tecnologia/admin/painel')
 def admin_painel():
-    # Proteção de Rota
     if not session.get('admin_logged_in'):
-        return redirect('/admin')
+        return redirect('/tecnologia/admin')
 
     loja = get_loja_data()
     categorias = get_categorias()
@@ -257,9 +255,9 @@ def admin_painel():
 
     return render_template('painel.html', loja=loja, categorias=categorias, produtos=produtos, posts=posts, directus_url=DIRECTUS_URL)
 
-@app.route('/admin/painel/salvar', methods=['POST'])
+@app.route('/tecnologia/admin/painel/salvar', methods=['POST'])
 def admin_salvar_geral():
-    if not session.get('admin_logged_in'): return redirect('/admin')
+    if not session.get('admin_logged_in'): return redirect('/tecnologia/admin')
     
     data = {
         "nome": request.form.get('nome'),
@@ -279,11 +277,11 @@ def admin_salvar_geral():
 
     requests.patch(f"{DIRECTUS_URL}/items/lojas/{LOJA_ID}", headers=get_headers(), json=data)
     flash("Configurações salvas com sucesso!", "success")
-    return redirect('/admin/painel')
+    return redirect('/tecnologia/admin/painel')
 
-@app.route('/admin/categoria/salvar', methods=['POST'])
+@app.route('/tecnologia/admin/categoria/salvar', methods=['POST'])
 def admin_salvar_categoria():
-    if not session.get('admin_logged_in'): return redirect('/admin')
+    if not session.get('admin_logged_in'): return redirect('/tecnologia/admin')
     
     cid = request.form.get('id')
     payload = {"nome": request.form.get('nome'), "loja_id": LOJA_ID, "status": "published"}
@@ -294,11 +292,11 @@ def admin_salvar_categoria():
     else:
         requests.post(f"{DIRECTUS_URL}/items/categorias", headers=get_headers(), json=payload)
         flash("Categoria criada!", "success")
-    return redirect('/admin/painel#categorias')
+    return redirect('/tecnologia/admin/painel#categorias')
 
-@app.route('/admin/produto/salvar', methods=['POST'])
+@app.route('/tecnologia/admin/produto/salvar', methods=['POST'])
 def admin_salvar_produto():
-    if not session.get('admin_logged_in'): return redirect('/admin')
+    if not session.get('admin_logged_in'): return redirect('/tecnologia/admin')
 
     pid = request.form.get('id')
     slug = request.form.get('nome').lower().replace(' ', '-').replace('/', '').replace('?', '')
@@ -325,11 +323,11 @@ def admin_salvar_produto():
     else:
         requests.post(f"{DIRECTUS_URL}/items/produtos", headers=get_headers(), json=payload)
         flash("Produto criado!", "success")
-    return redirect('/admin/painel#produtos')
+    return redirect('/tecnologia/admin/painel#produtos')
 
-@app.route('/admin/post/salvar', methods=['POST'])
+@app.route('/tecnologia/admin/post/salvar', methods=['POST'])
 def admin_salvar_post():
-    if not session.get('admin_logged_in'): return redirect('/admin')
+    if not session.get('admin_logged_in'): return redirect('/tecnologia/admin')
 
     pid = request.form.get('id')
     slug = request.form.get('titulo').lower().replace(' ', '-').replace('?', '')
@@ -351,19 +349,19 @@ def admin_salvar_post():
         requests.post(f"{DIRECTUS_URL}/items/posts", headers=get_headers(), json=payload)
     
     flash("Post salvo!", "success")
-    return redirect('/admin/painel#blog')
+    return redirect('/tecnologia/admin/painel#blog')
 
-@app.route('/admin/<tipo>/excluir/<id>')
+@app.route('/tecnologia/admin/<tipo>/excluir/<id>')
 def admin_excluir(tipo, id):
-    if not session.get('admin_logged_in'): return redirect('/admin')
+    if not session.get('admin_logged_in'): return redirect('/tecnologia/admin')
 
     collection_map = {"categoria": "categorias", "produto": "produtos", "post": "posts"}
     if tipo in collection_map:
         requests.delete(f"{DIRECTUS_URL}/items/{collection_map[tipo]}/{id}", headers=get_headers())
         flash(f"{tipo.capitalize()} excluído.", "success")
-    return redirect(f'/admin/painel#{collection_map[tipo]}')
+    return redirect(f'/tecnologia/admin/painel#{collection_map[tipo]}')
 
-@app.route('/logout')
+@app.route('/tecnologia/admin/logout')
 def logout():
     session.clear()
     return redirect('/tecnologia/')
