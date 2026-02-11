@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, render_template_string
 import requests
 import os
 import json
@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "segredo_super_secreto_leanttro_admin" # Necessário para mensagens flash
+app.secret_key = "segredo_super_secreto_leanttro_admin" # Necessário para sessões e mensagens flash
 
 # --- CONFIGURAÇÕES ---
 raw_url = os.getenv("DIRECTUS_URL", "https://api2.leanttro.com")
@@ -58,8 +58,11 @@ def get_loja_data():
                 data['bannermenor1_url'] = get_img_url(data.get('bannermenor1'))
                 data['bannermenor2_url'] = get_img_url(data.get('bannermenor2'))
                 
+                # Senha do Admin (Assumindo que o campo no Directus é 'senha_admin')
+                data['senha_admin'] = data.get('senha_admin') 
+
                 # Mapeamento do layout
-                data['slug_url'] = 'tecnologia' # Força o slug base
+                data['slug_url'] = 'tecnologia' 
                 return data
     except Exception as e: print(f"Erro Loja: {e}")
     return default_data
@@ -135,7 +138,6 @@ def produto_detalhe(slug):
             p = resp.json()['data'][0]
             img_url = get_img_url(p.get('imagem_destaque') or p.get('imagem1')) or "https://placehold.co/600x600/111827/FFF?text=Sem+Imagem"
             
-            # Correção do Erro 500 (Verificação de segurança)
             cat_nome = "Software"
             if isinstance(p.get('categoria_id'), dict):
                 cat_nome = p.get('categoria_id', {}).get('nome')
@@ -176,14 +178,64 @@ def case_detalhe(slug):
         return "Case não encontrado", 404
     except Exception as e: return "Erro ao carregar case", 500
 
-# --- ROTAS ADMIN (Escrita) ---
+# --- ROTAS ADMIN (Autenticação e Escrita) ---
+
+# Rota de Login (Substitui o acesso direto)
+@app.route('/admin', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        senha_digitada = request.form.get('senha')
+        loja = get_loja_data()
+        
+        # Verifica a senha cadastrada no Directus
+        if loja.get('senha_admin') and senha_digitada == loja.get('senha_admin'):
+            session['admin_logged_in'] = True
+            return redirect('/admin/painel')
+        else:
+            flash("Senha incorreta!", "error")
+    
+    # Template simples de login embutido
+    login_html = """
+    <!DOCTYPE html>
+    <html lang="pt-br">
+    <head>
+        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Acesso Restrito</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-900 flex items-center justify-center h-screen">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Acesso Administrativo</h2>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm font-bold text-center">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <form method="POST">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Senha de Acesso</label>
+                    <input type="password" name="senha" class="shadow appearance-none border rounded w-full py-3 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="********" required autofocus>
+                </div>
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline transition-colors">Entrar</button>
+            </form>
+            <p class="text-center mt-6"><a href="/tecnologia/" class="text-gray-500 text-xs hover:text-gray-700">← Voltar para a Loja</a></p>
+        </div>
+    </body>
+    </html>
+    """
+    return render_template_string(login_html)
 
 @app.route('/admin/painel')
 def admin_painel():
+    # Proteção de Rota
+    if not session.get('admin_logged_in'):
+        return redirect('/admin')
+
     loja = get_loja_data()
     categorias = get_categorias()
     
-    # Busca produtos simples para lista
     produtos = []
     try:
         resp = requests.get(f"{DIRECTUS_URL}/items/produtos?filter[loja_id][_eq]={LOJA_ID}&fields=id,nome,preco,imagem_destaque,estoque,categoria_id.nome,status_urgencia,origem", headers=get_headers())
@@ -194,7 +246,6 @@ def admin_painel():
                 produtos.append(p)
     except: pass
 
-    # Busca posts simples
     posts = []
     try:
         resp = requests.get(f"{DIRECTUS_URL}/items/posts?filter[loja_id][_eq]={LOJA_ID}&fields=id,slug,titulo,date_created,capa,resumo", headers=get_headers())
@@ -208,6 +259,8 @@ def admin_painel():
 
 @app.route('/admin/painel/salvar', methods=['POST'])
 def admin_salvar_geral():
+    if not session.get('admin_logged_in'): return redirect('/admin')
+    
     data = {
         "nome": request.form.get('nome'),
         "whatsapp_comercial": request.form.get('whatsapp'),
@@ -220,7 +273,6 @@ def admin_salvar_geral():
         "layout_order": request.form.get('layout_order')
     }
 
-    # Uploads
     if 'logo' in request.files and request.files['logo'].filename: data['logo'] = upload_file(request.files['logo'])
     if 'bannerprincipal1' in request.files and request.files['bannerprincipal1'].filename: data['bannerprincipal1'] = upload_file(request.files['bannerprincipal1'])
     if 'bannerprincipal2' in request.files and request.files['bannerprincipal2'].filename: data['bannerprincipal2'] = upload_file(request.files['bannerprincipal2'])
@@ -231,6 +283,8 @@ def admin_salvar_geral():
 
 @app.route('/admin/categoria/salvar', methods=['POST'])
 def admin_salvar_categoria():
+    if not session.get('admin_logged_in'): return redirect('/admin')
+    
     cid = request.form.get('id')
     payload = {"nome": request.form.get('nome'), "loja_id": LOJA_ID, "status": "published"}
     
@@ -244,8 +298,9 @@ def admin_salvar_categoria():
 
 @app.route('/admin/produto/salvar', methods=['POST'])
 def admin_salvar_produto():
+    if not session.get('admin_logged_in'): return redirect('/admin')
+
     pid = request.form.get('id')
-    # Slugify básico
     slug = request.form.get('nome').lower().replace(' ', '-').replace('/', '').replace('?', '')
     
     payload = {
@@ -274,6 +329,8 @@ def admin_salvar_produto():
 
 @app.route('/admin/post/salvar', methods=['POST'])
 def admin_salvar_post():
+    if not session.get('admin_logged_in'): return redirect('/admin')
+
     pid = request.form.get('id')
     slug = request.form.get('titulo').lower().replace(' ', '-').replace('?', '')
     
@@ -288,7 +345,7 @@ def admin_salvar_post():
 
     if 'capa' in request.files and request.files['capa'].filename: payload['capa'] = upload_file(request.files['capa'])
 
-    if pid and len(pid) > 5: # Verifica se é ID válido
+    if pid and len(pid) > 5:
         requests.patch(f"{DIRECTUS_URL}/items/posts/{pid}", headers=get_headers(), json=payload)
     else:
         requests.post(f"{DIRECTUS_URL}/items/posts", headers=get_headers(), json=payload)
@@ -296,9 +353,10 @@ def admin_salvar_post():
     flash("Post salvo!", "success")
     return redirect('/admin/painel#blog')
 
-# Exclusão Genérica
 @app.route('/admin/<tipo>/excluir/<id>')
 def admin_excluir(tipo, id):
+    if not session.get('admin_logged_in'): return redirect('/admin')
+
     collection_map = {"categoria": "categorias", "produto": "produtos", "post": "posts"}
     if tipo in collection_map:
         requests.delete(f"{DIRECTUS_URL}/items/{collection_map[tipo]}/{id}", headers=get_headers())
@@ -307,6 +365,7 @@ def admin_excluir(tipo, id):
 
 @app.route('/logout')
 def logout():
+    session.clear()
     return redirect('/tecnologia/')
 
 if __name__ == '__main__':
