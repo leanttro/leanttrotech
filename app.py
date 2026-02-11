@@ -11,18 +11,18 @@ load_dotenv()
 app = Flask(__name__)
 
 # --- CONFIGURAÇÕES ---
-# Remove barra final para evitar duplicação
+# Remove barra final para evitar duplicação na montagem de URLs
 raw_url = os.getenv("DIRECTUS_URL", "https://api2.leanttro.com")
 DIRECTUS_URL = raw_url.rstrip('/')
 
 DIRECTUS_TOKEN = os.getenv("DIRECTUS_TOKEN", "") 
-LOJA_ID = os.getenv("LOJA_ID", "") 
+LOJA_ID = os.getenv("LOJA_ID", "") # IMPORTANTE: Esse ID deve bater com o banco
 
 # --- FUNÇÕES AUXILIARES ---
 def get_img_url(image_id_or_url):
     """Trata imagens vindas do Directus (ID) ou URLs externas"""
     if not image_id_or_url:
-        return "" 
+        return "" # Retorna vazio, o HTML deve lidar com placeholder
     
     if isinstance(image_id_or_url, dict):
         return f"{DIRECTUS_URL}/assets/{image_id_or_url.get('id')}"
@@ -36,12 +36,16 @@ def get_headers():
     return {"Authorization": f"Bearer {DIRECTUS_TOKEN}"} if DIRECTUS_TOKEN else {}
 
 def get_loja_data():
-    """Busca dados da loja"""
+    """Busca dados da loja e mapeia para o formato do Template"""
     default_data = {"nome": "Tech Store", "cor_primaria": "#7c3aed", "whatsapp": ""}
     
     try:
         if LOJA_ID:
-            resp = requests.get(f"{DIRECTUS_URL}/items/lojas/{LOJA_ID}?fields=*.*", headers=get_headers())
+            # Busca campos específicos baseados no seu print de 'Lojas'
+            url = f"{DIRECTUS_URL}/items/lojas/{LOJA_ID}?fields=*.*"
+            print(f"🔍 Buscando Loja: {url}") # Debug
+            resp = requests.get(url, headers=get_headers())
+            
             if resp.status_code == 200:
                 data = resp.json().get('data', {})
                 
@@ -53,13 +57,16 @@ def get_loja_data():
                     "logo": logo_final,
                     "cor_primaria": data.get('cor_primaria', '#7c3aed'),
                     "whatsapp": data.get('whatsapp_comercial', ''),
+                    # Mapeamento exato com seus prints
                     "banner1": get_img_url(data.get('bannerprincipal1')),
                     "link1": data.get('linkbannerprincipal1', '#'),
                     "banner2": get_img_url(data.get('bannerprincipal2')),
                     "link2": data.get('linkbannerprincipal2', '#')
                 }
+            else:
+                print(f"❌ Erro ao buscar loja: {resp.status_code} - {resp.text}")
     except Exception as e:
-        print(f"Erro Loja: {e}")
+        print(f"❌ Exceção Loja: {e}")
     return default_data
 
 def get_categorias():
@@ -71,31 +78,43 @@ def get_categorias():
     except: pass
     return []
 
-# --- ROTAS (/tecnologia) ---
+# --- ROTAS PRINCIPAIS (/tecnologia) ---
 
 @app.route('/tecnologia/')
 def index():
     loja = get_loja_data()
     categorias = get_categorias()
     
+    # Filtro de Categoria
     cat_filter = request.args.get('categoria')
     filter_str = f"&filter[loja_id][_eq]={LOJA_ID}&filter[status][_eq]=published"
     
+    # Se filtrar, adiciona a query.
     if cat_filter:
         filter_str += f"&filter[categoria_id][_eq]={cat_filter}"
 
     produtos = []
     
     try:
+        # Busca produtos com campos relacionais
         url_prod = f"{DIRECTUS_URL}/items/produtos?{filter_str}&fields=*.*"
+        print(f"📦 Buscando Produtos: {url_prod}") # Debug no console
+        
         resp_prod = requests.get(url_prod, headers=get_headers())
         
         if resp_prod.status_code == 200:
             produtos_raw = resp_prod.json().get('data', [])
+            print(f"✅ Produtos encontrados: {len(produtos_raw)}")
             
             for p in produtos_raw:
+                # Tratamento de Imagem (imagem_destaque ou imagem1 do seu print)
                 img_url = get_img_url(p.get('imagem_destaque') or p.get('imagem1'))
                 
+                # Se não tiver imagem (script inseriu sem foto), usa placeholder
+                if not img_url:
+                    img_url = "https://placehold.co/600x600/111827/FFF?text=Sem+Imagem"
+
+                # Tratamento de Variantes (JSON repeater)
                 variantes_tratadas = []
                 if p.get('variantes'):
                     v_list = p['variantes'] if isinstance(p['variantes'], list) else []
@@ -109,15 +128,19 @@ def index():
                     "slug": p.get('slug'),
                     "preco": float(p['preco']) if p.get('preco') else None,
                     "imagem": img_url,
+                    # Flags baseadas no seu print
                     "origem": p.get('origem', 'Estoque'), 
-                    "urgencia": p.get('status_urgencia', 'Normal'),
+                    "urgencia": p.get('status_urgencia', 'Normal'), 
                     "variantes": variantes_tratadas,
                     "categoria_id": p.get('categoria_id')
                 })
+        else:
+            print(f"❌ Erro API Produtos: {resp_prod.text}")
                 
     except Exception as e:
-        print(f"Erro Produtos: {e}")
+        print(f"❌ Erro Geral Produtos: {e}")
 
+    # Busca Posts (Cases)
     posts = []
     try:
         url_posts = f"{DIRECTUS_URL}/items/posts?filter[loja_id][_eq]={LOJA_ID}&filter[status][_eq]=published&limit=5&sort=-date_created"
@@ -139,13 +162,12 @@ def index():
                 })
     except: pass
 
+    # Renderiza index.html
     return render_template('index.html', loja=loja, categorias=categorias, produtos=produtos, posts=posts, directus_url=DIRECTUS_URL)
 
 @app.route('/tecnologia/produto/<slug>')
 def produto_detalhe(slug):
-    # Caso precise desta rota, reutilize lógica ou redirecione. 
-    # O foco aqui foi limpar o frete. 
-    # Se não tiver um template específico novo, pode manter o redirect ou criar um simples.
+    # Redireciona para a home com ancora, já que é one-page ou modal
     return redirect(f"/tecnologia/#produto-{slug}") 
 
 @app.route('/tecnologia/case/<slug>')
