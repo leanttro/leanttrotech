@@ -167,8 +167,43 @@ def index():
 
 @app.route('/tecnologia/produto/<slug>')
 def produto_detalhe(slug):
-    # Redireciona para a home com ancora, já que é one-page ou modal
-    return redirect(f"/tecnologia/#produto-{slug}") 
+    loja = get_loja_data()
+    produto_data = None
+    
+    try:
+        # Busca o produto pelo SLUG
+        url = f"{DIRECTUS_URL}/items/produtos?filter[slug][_eq]={slug}&filter[loja_id][_eq]={LOJA_ID}&fields=*.*"
+        resp = requests.get(url, headers=get_headers())
+        
+        if resp.status_code == 200 and len(resp.json()['data']) > 0:
+            p = resp.json()['data'][0]
+            
+            # Tratamento da Imagem
+            img_url = get_img_url(p.get('imagem_destaque') or p.get('imagem1'))
+            if not img_url: img_url = "https://placehold.co/600x600/111827/FFF?text=Sem+Imagem"
+
+            # Tenta pegar nome da categoria se vier como objeto, senão string genérica
+            cat_nome = "Software"
+            if isinstance(p.get('categoria_id'), dict):
+                cat_nome = p.get('categoria_id', {}).get('nome')
+
+            produto_data = {
+                "id": str(p['id']),
+                "nome": p['nome'],
+                "slug": p.get('slug'),
+                "descricao": p.get('descricao', 'Sem descrição detalhada.'),
+                "preco": float(p['preco']) if p.get('preco') else None,
+                "imagem": img_url,
+                "urgencia": p.get('status_urgencia', 'Normal'),
+                "categoria_nome": cat_nome
+            }
+            return render_template('produto.html', loja=loja, produto=produto_data, directus_url=DIRECTUS_URL)
+        else:
+            return "Produto não encontrado", 404
+            
+    except Exception as e:
+        print(f"Erro Produto: {e}")
+        return "Erro ao carregar produto", 500
 
 @app.route('/tecnologia/case/<slug>')
 def case_detalhe(slug):
