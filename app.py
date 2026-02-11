@@ -241,6 +241,14 @@ def admin_painel():
             for p in resp.json().get('data', []):
                 p['imagem'] = get_img_url(p.get('imagem_destaque'))
                 p['categoria_nome'] = p.get('categoria_id', {}).get('nome') if isinstance(p.get('categoria_id'), dict) else "Sem Categoria"
+                
+                # CORREÇÃO DO ERRO 500: Converter preço para float
+                if p.get('preco'):
+                    try:
+                        p['preco'] = float(p['preco'])
+                    except:
+                        p['preco'] = 0.0
+                
                 produtos.append(p)
     except: pass
 
