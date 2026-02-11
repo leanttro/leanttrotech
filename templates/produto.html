@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ produto.nome }} | Detalhes</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+        
+        :root { 
+            --primary: {{ loja.cor_primaria or '#7c3aed' }}; 
+            --secondary: #111827;
+        }
+        body { font-family: 'Inter', sans-serif; color: #1f2937; }
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+        .text-theme { color: var(--primary); }
+        .bg-theme { background-color: var(--primary); }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen bg-gray-50">
+
+    <header class="bg-white/95 backdrop-blur border-b border-gray-100 sticky top-0 z-50">
+        <div class="container mx-auto px-4 h-16 flex items-center justify-between">
+            <a href="/tecnologia/" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                {% if loja.logo %}
+                    <img src="{{ directus_url }}/assets/{{ loja.logo }}" class="h-8 md:h-10 object-contain">
+                {% else %}
+                    <span class="font-bold font-display text-xl text-secondary">{{ loja.nome }}</span>
+                {% endif %}
+            </a>
+            <a href="/tecnologia/" class="text-sm font-bold text-gray-500 hover:text-theme flex items-center gap-2 transition-colors">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar para Loja
+            </a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-10 flex-grow">
+        <div class="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-0">
+                
+                <div class="bg-gray-100 relative p-8 flex items-center justify-center min-h-[400px]">
+                    <img src="{{ produto.imagem }}" class="w-full max-h-[500px] object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500">
+                    {% if produto.urgencia == 'Alta' %}
+                        <div class="absolute top-6 left-6 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse shadow-red-500/50 shadow-lg">🔥 ALTA DEMANDA</div>
+                    {% endif %}
+                </div>
+
+                <div class="p-8 md:p-12 flex flex-col justify-center bg-white relative">
+                    <span class="text-theme font-bold text-xs uppercase tracking-widest mb-2">{{ produto.categoria_nome or 'Software' }}</span>
+                    <h1 class="text-3xl md:text-5xl font-display font-bold text-secondary mb-6 leading-tight">{{ produto.nome }}</h1>
+                    
+                    <div class="prose text-gray-500 mb-8 leading-relaxed">
+                        {{ produto.descricao | safe }}
+                    </div>
+
+                    <div class="mt-auto pt-8 border-t border-gray-100">
+                        <div class="flex items-end justify-between mb-6">
+                            <div>
+                                <p class="text-xs text-gray-400 font-bold uppercase">Investimento</p>
+                                {% if produto.preco %}
+                                    <span class="text-4xl font-bold text-theme">R$ {{ "%.2f"|format(produto.preco)|replace('.', ',') }}</span>
+                                {% else %}
+                                    <span class="text-3xl font-bold text-gray-400">Sob Consulta</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <button onclick="comprarAgora()" class="w-full bg-secondary hover:bg-theme text-white font-bold text-lg py-5 rounded-2xl shadow-xl shadow-gray-200 hover:shadow-purple-500/30 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3">
+                            <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+                            Adicionar à Sacola
+                        </button>
+                        
+                        <p class="text-center text-[10px] text-gray-400 mt-4 uppercase tracking-widest flex justify-center gap-2">
+                            <i data-lucide="shield-check" class="w-3 h-3"></i> Garantia de Entrega
+                            <span class="mx-2">•</span>
+                            <i data-lucide="zap" class="w-3 h-3"></i> Suporte Incluso
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-gray-100 py-8 text-center text-xs text-gray-400 uppercase tracking-widest">
+        © 2026 {{ loja.nome }}.
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        function comprarAgora() {
+            // Pega o carrinho atual
+            let cart = JSON.parse(localStorage.getItem('cart_v2') || '[]');
+            
+            // Cria o objeto do produto (usando dados injetados pelo Python)
+            let produto = {
+                id: "{{ produto.id }}",
+                nome: "{{ produto.nome }}",
+                nome_exibicao: "{{ produto.nome }}",
+                imagem: "{{ produto.imagem }}",
+                preco: {{ produto.preco or 0 }},
+                qtd: 1,
+                cart_id: "{{ produto.id }}-padrao" // Simplificado sem variantes por enquanto
+            };
+            
+            // Verifica se já existe e soma
+            let idx = cart.findIndex(i => i.cart_id === produto.cart_id);
+            if(idx > -1) {
+                cart[idx].qtd++;
+            } else {
+                cart.push(produto);
+            }
+            
+            // Salva e redireciona para a home COM O CARRINHO ABERTO
+            localStorage.setItem('cart_v2', JSON.stringify(cart));
+            window.location.href = "/tecnologia/?open_cart=true";
+        }
+    </script>
+</body>
+</html>
