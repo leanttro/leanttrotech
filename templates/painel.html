@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin | {{ loja.nome }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .modal { transition: opacity 0.25s ease; }
+        body.modal-active { overflow-x: hidden; overflow-y: visible !important; }
+        .color-preview { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #e5e7eb; cursor: pointer; }
+        .list-group-item { cursor: move; }
+        .list-group-item.sortable-ghost { opacity: 0.4; background-color: #f9fafb; border: 2px dashed #d1d5db; }
+        
+        /* Utilitários de Animação */
+        .mobile-nav-hidden { display: none; }
+        .mobile-nav-visible { display: block; animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Estilo para imagem de preview no input file */
+        .img-preview { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 5px; display: none; }
+        .img-preview.visible { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="fixed top-4 right-4 z-[100] flex flex-col gap-2" id="flash-messages-container">
+            {% for category, message in messages %}
+                <div class="{% if category == 'error' %}bg-red-500{% else %}bg-green-500{% endif %} text-white px-6 py-4 rounded shadow-lg flex items-center gap-2 animate-bounce flash-message-item">
+                    <i data-lucide="{% if category == 'error' %}alert-circle{% else %}check-circle{% endif %}"></i>
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <nav class="bg-white shadow-sm fixed w-full z-40 top-0 border-b border-gray-200">
+        <div class="w-full container mx-auto flex flex-wrap items-center justify-between mt-0 py-4 px-6">
+            <div class="flex items-center gap-4">
+                <span class="text-gray-800 text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="layout-dashboard" class="text-pink-600"></i> Painel Admin
+                </span>
+                <span class="hidden md:inline-block bg-pink-100 text-pink-800 text-xs font-bold px-2 py-1 rounded-full">{{ loja.nome }}</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="/tecnologia/" target="_blank" class="text-gray-600 hover:text-pink-600 flex items-center gap-1 text-sm font-bold transition-colors">
+                    <i data-lucide="external-link" class="w-4 h-4"></i> <span class="hidden md:inline">Ver Loja</span>
+                </a>
+                <div class="h-6 w-px bg-gray-300 mx-1"></div>
+                <a href="/logout" class="text-red-500 hover:text-red-700 flex items-center gap-1 text-sm font-bold transition-colors">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> Sair
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto mt-24 px-6 md:px-0 flex flex-col md:flex-row gap-6 pb-20">
+        
+        <aside class="w-full md:w-64 bg-white rounded-lg shadow-sm border border-gray-200 p-4 h-fit sticky top-24 z-30">
+            <button onclick="toggleMobileMenu()" class="md:hidden w-full flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200 text-gray-700 font-bold hover:bg-gray-100 transition-colors mb-2">
+                <span class="flex items-center gap-2"><i data-lucide="menu"></i> Menu de Navegação</span>
+                <i data-lucide="chevron-down" id="menuChevron" class="transition-transform duration-300"></i>
+            </button>
+
+            <nav id="sidebarNav" class="space-y-1 hidden md:block">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-2 px-4">Conteúdo</p>
+                <a href="#categorias" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium text-sm" onclick="selectMenuItem('categorias')">
+                    <i data-lucide="layers" class="w-4 h-4"></i> Categorias
+                </a>
+                <a href="#produtos" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium text-sm" onclick="selectMenuItem('produtos')">
+                    <i data-lucide="shopping-bag" class="w-4 h-4"></i> Produtos
+                </a>
+                <a href="#blog" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium text-sm" onclick="selectMenuItem('blog')">
+                    <i data-lucide="file-text" class="w-4 h-4"></i> Blog / Cases
+                </a>
+                
+                <div class="border-t border-gray-100 my-2"></div>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-2 px-4">Aparência</p>
+                
+                <a href="#layout" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium text-sm" onclick="selectMenuItem('layout')">
+                    <i data-lucide="layout-template" class="w-4 h-4"></i> Layout da Home
+                </a>
+                <a href="#visual" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium text-sm" onclick="selectMenuItem('visual')">
+                    <i data-lucide="palette" class="w-4 h-4"></i> Identidade Visual
+                </a>
+                <a href="#config" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600 rounded-lg transition-colors font-medium text-sm" onclick="selectMenuItem('config')">
+                    <i data-lucide="settings" class="w-4 h-4"></i> Configurações
+                </a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 space-y-6 min-w-0">
+
+            <section id="categorias" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 md:gap-0 border-b border-gray-100 pb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="layers" class="text-pink-600"></i> Categorias</h2>
+                        <p class="text-sm text-gray-500 mt-1">Organize seus produtos em seções.</p>
+                    </div>
+                    <button onclick="novaCategoria()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2.5 px-4 rounded-lg flex items-center gap-2 text-sm shadow-sm transition-all hover:shadow-md">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Nova Categoria
+                    </button>
+                </div>
+                
+                <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                    <ul id="lista-categorias" class="divide-y divide-gray-200">
+                        {% for cat in categorias %}
+                        <li class="list-group-item flex items-center justify-between p-4 hover:bg-white transition-colors group" data-id="{{ cat.id }}">
+                             <div class="flex items-center gap-4">
+                                <div class="cursor-move p-2 text-gray-400 hover:text-gray-600 bg-transparent hover:bg-gray-100 rounded">
+                                    <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                                </div>
+                                <span class="font-bold text-gray-700 text-sm md:text-base">{{ cat.nome }}</span>
+                                <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded border">ID: {{ cat.id }}</span>
+                            </div>
+                            <div class="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                <button onclick='editarCategoria({{ cat | tojson }})' class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                                    <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                </button>
+                                <a href="/admin/categoria/excluir/{{ cat.id }}" class="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors" onclick="return confirm('Tem certeza que deseja excluir esta categoria? Os produtos nela ficarão sem categoria.')" title="Excluir">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </li>
+                        {% else %}
+                        <li class="p-8 text-center text-gray-500 flex flex-col items-center">
+                            <i data-lucide="folder-open" class="w-8 h-8 mb-2 opacity-50"></i>
+                            Nenhuma categoria cadastrada.
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                 <p class="text-xs text-gray-500 mt-2 flex items-center gap-1"><i data-lucide="info" class="w-3 h-3"></i> Arraste os itens para reordenar a exibição no site.</p>
+            </section>
+
+            <section id="produtos" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hidden">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 md:gap-0 border-b border-gray-100 pb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="shopping-bag" class="text-pink-600"></i> Produtos</h2>
+                        <p class="text-sm text-gray-500 mt-1">Gerencie seu catálogo, preços e estoque.</p>
+                    </div>
+                    <button onclick="novoProduto()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2.5 px-4 rounded-lg flex items-center gap-2 text-sm shadow-sm transition-all hover:shadow-md">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Novo Produto
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto bg-white rounded-lg border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Produto</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Preço</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for prod in produtos %}
+                            <tr class="hover:bg-gray-50 transition-colors group">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-12 w-12 relative">
+                                            <img class="h-12 w-12 rounded-lg object-cover border border-gray-200" src="{{ prod.imagem }}" alt="">
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-bold text-gray-900 line-clamp-1">{{ prod.nome }}</div>
+                                            <div class="text-xs text-gray-500">{{ prod.origem }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200">
+                                        {{ prod.categoria_nome or 'Sem Categoria' }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-bold">
+                                    {% if prod.preco %}
+                                        R$ {{ "%.2f"|format(prod.preco) }}
+                                    {% else %}
+                                        <span class="text-gray-400 font-normal italic">Sob Consulta</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if prod.urgencia == 'Alta' %}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-red-100 text-red-800 border border-red-200 gap-1 items-center">
+                                        <i data-lucide="flame" class="w-3 h-3"></i> HOT
+                                    </span>
+                                    {% else %}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 border border-green-200">
+                                        Normal
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button onclick='editarProduto({{ prod | tojson }})' class="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-lg hover:bg-blue-100 transition-colors">
+                                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                        </button>
+                                        <a href="/admin/produto/excluir/{{ prod.id }}" class="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-lg hover:bg-red-100 transition-colors" onclick="return confirm('Tem certeza? Isso não pode ser desfeito.')">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                             {% else %}
+                            <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500 flex flex-col items-center justify-center w-full"><i data-lucide="package-open" class="w-10 h-10 mb-2 opacity-30"></i>Nenhum produto cadastrado.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="blog" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hidden">
+                <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="file-text" class="text-pink-600"></i> Blog & Cases</h2>
+                        <p class="text-sm text-gray-500 mt-1">Conteúdo para engajamento e SEO.</p>
+                    </div>
+                    <button onclick="novoPost()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm">
+                        <i data-lucide="plus"></i> Novo Post
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for post in posts %}
+                    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full group">
+                        <div class="h-32 bg-gray-100 relative overflow-hidden">
+                            {% if post.capa %}
+                            <img src="{{ post.capa }}" class="w-full h-full object-cover">
+                            {% else %}
+                            <div class="w-full h-full flex items-center justify-center text-gray-400"><i data-lucide="image"></i></div>
+                            {% endif %}
+                            <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick='editarPost({{ post | tojson }})' class="bg-white text-blue-600 p-2 rounded-full shadow-lg hover:text-blue-800"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                <a href="/admin/post/excluir/{{ post.slug }}" onclick="return confirm('Excluir post?')" class="bg-white text-red-600 p-2 rounded-full shadow-lg hover:text-red-800"><i data-lucide="trash-2" class="w-4 h-4"></i></a>
+                            </div>
+                        </div>
+                        <div class="p-4 flex-1 flex flex-col">
+                             <h3 class="font-bold text-gray-800 line-clamp-1 mb-1">{{ post.titulo }}</h3>
+                             <p class="text-xs text-gray-400 mb-2">{{ post.data }}</p>
+                             <p class="text-sm text-gray-600 line-clamp-3 mb-4">{{ post.resumo }}</p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-span-2 p-12 text-center text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        Nenhum post cadastrado.
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <form action="/admin/painel/salvar" method="POST" enctype="multipart/form-data">
+                
+                <section id="layout" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hidden space-y-8">
+                    <div class="border-b border-gray-100 pb-4">
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="layout-template" class="text-pink-600"></i> Layout & Ordem</h2>
+                        <p class="text-sm text-gray-500">Controle o que aparece na página inicial.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><span class="bg-gray-800 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span> Ordem das Seções</h3>
+                            <p class="text-xs text-gray-500 mb-4 bg-yellow-50 text-yellow-800 p-2 rounded border border-yellow-100 flex items-center gap-1"><i data-lucide="info" class="w-3 h-3"></i> Arraste os blocos para mudar a ordem.</p>
+                            
+                            <input type="hidden" name="layout_order" id="layoutOrderInput" value="{{ loja.layout_order or 'banners,categorias,produtos,posts' }}">
+                            
+                            <ul id="layout-sortable" class="space-y-2">
+                                {% if loja.layout_order %}
+                                    {% for secao in loja.layout_order.split(',') %}
+                                    <li class="list-group-item p-4 bg-white border border-gray-200 rounded-lg shadow-sm flex items-center gap-3 hover:border-pink-300 transition-colors" data-id="{{ secao }}">
+                                        <i data-lucide="grip-vertical" class="text-gray-400 cursor-move"></i>
+                                        <span class="font-bold text-gray-700 capitalize flex-1">{{ secao.replace('_', ' ') }}</span>
+                                        <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Seção</span>
+                                    </li>
+                                    {% endfor %}
+                                {% else %}
+                                    <li class="list-group-item p-3 border rounded" data-id="banners">Banners Principais</li>
+                                    <li class="list-group-item p-3 border rounded" data-id="categorias">Lista de Categorias</li>
+                                    <li class="list-group-item p-3 border rounded" data-id="produtos">Destaques / Produtos</li>
+                                    <li class="list-group-item p-3 border rounded" data-id="posts">Blog / Cases</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+
+                        <div class="space-y-5">
+                             <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><span class="bg-gray-800 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span> Visibilidade & Títulos</h3>
+                            
+                            <div class="space-y-4">
+                                <div class="p-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-white hover:shadow-sm transition-all">
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="checkbox" name="ocultar_banner" class="w-5 h-5 text-pink-600 rounded focus:ring-pink-500" {% if loja.ocultar_banner %}checked{% endif %}>
+                                        <span class="text-sm font-bold text-gray-700">Ocultar Banners Principais</span>
+                                    </label>
+                                </div>
+
+                                <div class="p-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-white hover:shadow-sm transition-all space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-bold text-gray-700 flex items-center gap-2"><i data-lucide="shopping-bag" class="w-4 h-4"></i> Seção de Produtos</span>
+                                    </div>
+                                    <input type="text" name="titulo_produtos" value="{{ loja.titulo_produtos }}" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="Título (Ex: Destaques da Semana)">
+                                </div>
+
+                                <div class="p-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-white hover:shadow-sm transition-all space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-bold text-gray-700 flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4"></i> Seção de Blog</span>
+                                    </div>
+                                    <input type="text" name="titulo_blog" value="{{ loja.titulo_blog }}" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="Título (Ex: Nossos Projetos)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            
+                <section id="visual" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hidden space-y-8">
+                    <div class="border-b border-gray-100 pb-4">
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2"><i data-lucide="palette" class="text-pink-600"></i> Identidade Visual</h2>
+                        <p class="text-sm text-gray-500">Logotipo, cores e banners.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        
+                        <div class="space-y-6">
+                            <h3 class="font-bold text-gray-700 border-b border-gray-100 pb-2">Logotipo & Cores</h3>
+                            
+                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                <label class="block text-xs font-bold uppercase text-gray-500 mb-2">Logotipo Atual</label>
+                                <div class="flex items-center gap-4 mb-3">
+                                    {% if loja.logo %}
+                                    <img src="{{ directus_url }}/assets/{{ loja.logo }}" class="h-12 w-auto object-contain border rounded bg-white p-1">
+                                    {% else %}
+                                    <span class="text-gray-400 text-sm">Sem logo</span>
+                                    {% endif %}
+                                </div>
+                                <input type="file" name="logo" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-pink-100 file:text-pink-700 hover:file:bg-pink-200 cursor-pointer transition-colors">
+                            </div>
+
+                             <div class="grid grid-cols-1 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Cor Principal (Botões/Destaques)</label>
+                                    <div class="flex items-center gap-2 p-1 border rounded bg-white">
+                                        <input type="color" name="cor_primaria" value="{{ loja.cor_primaria }}" class="h-10 w-12 p-0 border-0 rounded cursor-pointer">
+                                        <input type="text" value="{{ loja.cor_primaria }}" class="w-full text-sm font-mono uppercase focus:outline-none" onchange="this.previousElementSibling.value = this.value">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-6">
+                            <h3 class="font-bold text-gray-700 border-b border-gray-100 pb-2">Banners Rotativos</h3>
+                            
+                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                <label class="block text-sm font-bold mb-2 flex justify-between">
+                                    Banner 1
+                                    {% if loja.banner1 %}<span class="text-green-600 text-xs font-normal">Imagem ativa</span>{% endif %}
+                                </label>
+                                {% if loja.banner1 %}
+                                <img src="{{ loja.banner1 }}" class="w-full h-24 object-cover rounded mb-3 border opacity-80 hover:opacity-100 transition-opacity">
+                                {% endif %}
+                                <input type="file" name="bannerprincipal1" accept="image/*" class="text-sm mb-3 w-full">
+                                <input type="text" name="link1" value="{{ loja.link1 }}" placeholder="Link (ex: /tecnologia/promocao)" class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-pink-500 transition-all">
+                            </div>
+
+                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                <label class="block text-sm font-bold mb-2 flex justify-between">
+                                    Banner 2
+                                    {% if loja.banner2 %}<span class="text-green-600 text-xs font-normal">Imagem ativa</span>{% endif %}
+                                </label>
+                                {% if loja.banner2 %}
+                                <img src="{{ loja.banner2 }}" class="w-full h-24 object-cover rounded mb-3 border opacity-80 hover:opacity-100 transition-opacity">
+                                {% endif %}
+                                <input type="file" name="bannerprincipal2" accept="image/*" class="text-sm mb-3 w-full">
+                                <input type="text" name="link2" value="{{ loja.link2 }}" placeholder="Link (ex: https://instagram.com/...)" class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-pink-500 transition-all">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="config" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hidden space-y-6">
+                     <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6"><i data-lucide="settings" class="text-pink-600"></i> Configurações Gerais</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold mb-2">Nome da Loja</label>
+                            <input type="text" name="nome" value="{{ loja.nome }}" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-2">WhatsApp Comercial (Só números)</label>
+                            <div class="relative">
+                                <i data-lucide="phone" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
+                                <input type="text" name="whatsapp" value="{{ loja.whatsapp }}" class="w-full border border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                            </div>
+                        </div>
+                    </div>
+                     <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800 flex items-start gap-3">
+                        <i data-lucide="info" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <p class="font-bold">Informação:</p>
+                            <p>As alterações feitas aqui refletem imediatamente na sua loja pública.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur border-t border-gray-200 p-4 flex justify-end z-[90] shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+                    <div class="container mx-auto flex justify-end items-center gap-4">
+                        <span class="text-xs text-gray-400 hidden md:inline">Não esqueça de salvar suas alterações de layout e visual.</span>
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg shadow-green-600/20 flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95">
+                            <i data-lucide="save"></i> SALVAR ALTERAÇÕES GERAIS
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+
+        </main>
+    </div>
+
+    <div id="categoriaModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-[100]">
+        <div class="modal-overlay absolute w-full h-full bg-gray-900/50 backdrop-blur-sm transition-opacity" onclick="toggleModal('categoriaModal')"></div>
+        <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded-2xl shadow-2xl z-50 overflow-hidden transform transition-all scale-95 opacity-0" id="catModalContent">
+            <div class="modal-content py-4 text-left px-6">
+                <div class="flex justify-between items-center pb-3 border-b border-gray-100 mb-4">
+                    <p class="text-xl font-bold text-gray-800" id="catModalTitle">Nova Categoria</p>
+                    <div class="cursor-pointer z-50 hover:bg-gray-100 p-1 rounded-full transition-colors" onclick="toggleModal('categoriaModal')">
+                        <i data-lucide="x" class="text-gray-500 w-5 h-5"></i>
+                    </div>
+                </div>
+                <form id="categoriaForm" action="/admin/categoria/salvar" method="POST">
+                    <input type="hidden" name="id" id="catId">
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold mb-2 text-gray-700">Nome da Categoria</label>
+                        <input type="text" name="nome" id="catNome" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all" required placeholder="Ex: Softwares SaaS">
+                    </div>
+                    <div class="flex justify-end pt-2 gap-2">
+                         <button type="button" class="px-4 py-2 rounded-lg text-gray-500 hover:bg-gray-100 font-bold text-sm" onclick="toggleModal('categoriaModal')">Cancelar</button>
+                        <button type="submit" class="px-6 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg text-white font-bold text-sm shadow-md transition-all">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="produtoModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-[100] md:py-6">
+        <div class="modal-overlay absolute w-full h-full bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="toggleModal('produtoModal')"></div>
+        <div class="modal-container bg-white w-full h-full md:h-auto md:w-11/12 md:max-w-4xl mx-auto md:rounded-2xl rounded-none shadow-2xl z-50 overflow-y-auto md:max-h-[90vh] transform transition-all scale-95 opacity-0" id="prodModalContent">
+            <div class="modal-content py-6 text-left px-6 md:px-8">
+                <div class="flex justify-between items-center pb-6 border-b border-gray-100">
+                    <div>
+                        <p class="text-2xl font-bold text-gray-800" id="prodModalTitle">Novo Produto</p>
+                        <p class="text-xs text-gray-400">Preencha todos os dados com atenção.</p>
+                    </div>
+                    <div class="cursor-pointer z-50 bg-gray-50 p-2 rounded-full hover:bg-gray-100 transition-colors" onclick="toggleModal('produtoModal')">
+                        <i data-lucide="x" class="text-gray-600 w-6 h-6"></i>
+                    </div>
+                </div>
+                <form id="produtoForm" action="/admin/produto/salvar" method="POST" enctype="multipart/form-data" class="mt-6 space-y-6">
+                    <input type="hidden" name="id" id="prodId">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="block text-sm font-bold mb-2 text-gray-700">Nome do Produto*</label>
+                            <input type="text" name="nome" id="prodNome" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all" required placeholder="Ex: Sistema ERP Completo">
+                        </div>
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="block text-sm font-bold mb-2 text-gray-700">Categoria</label>
+                            <div class="relative">
+                                <select name="categoria_id" id="prodCategoria" class="w-full border border-gray-300 rounded-lg p-3 bg-white focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all appearance-none">
+                                    <option value="">-- Selecione --</option>
+                                    {% for cat in categorias %}
+                                    <option value="{{ cat.id }}">{{ cat.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none"></i>
+                            </div>
+                        </div>
+
+                        <div>
+                             <label class="block text-sm font-bold mb-2 text-gray-700">Preço (R$)</label>
+                             <div class="relative">
+                                <span class="absolute left-3 top-3 text-gray-500 font-bold">R$</span>
+                                <input type="number" name="preco" id="prodPreco" step="0.01" class="w-full border border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all" placeholder="0,00">
+                            </div>
+                        </div>
+                         
+                         <div class="grid grid-cols-2 gap-4">
+                             <div>
+                                <label class="block text-sm font-bold mb-2 text-gray-700">Urgência</label>
+                                <select name="status_urgencia" id="prodUrgencia" class="w-full border border-gray-300 rounded-lg p-3 bg-white text-sm">
+                                    <option value="Normal">Normal</option>
+                                    <option value="Alta">Alta (HOT 🔥)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2 text-gray-700">Origem/Tipo</label>
+                                <select name="origem" id="prodOrigem" class="w-full border border-gray-300 rounded-lg p-3 bg-white text-sm">
+                                    <option value="Estoque">Produto Pronto</option>
+                                    <option value="Encomenda">Sob Encomenda</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label class="block text-sm font-bold mb-2 text-gray-700">Imagem Principal*</label>
+                                <img id="preview-img" class="img-preview">
+                                <input type="file" name="imagem" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-white file:text-pink-700 file:shadow-sm hover:file:bg-gray-100">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2 text-gray-700">Imagem Extra 1</label>
+                                <img id="preview-img1" class="img-preview">
+                                <input type="file" name="imagem1" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-white file:text-pink-700 file:shadow-sm hover:file:bg-gray-100">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2 text-gray-700">Imagem Extra 2</label>
+                                <img id="preview-img2" class="img-preview">
+                                <input type="file" name="imagem2" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-white file:text-pink-700 file:shadow-sm hover:file:bg-gray-100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">Descrição Detalhada</label>
+                        <textarea name="descricao" id="prodDescricao" rows="5" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all resize-y font-mono text-sm" placeholder="Use HTML se quiser, ou apenas texto..."></textarea>
+                    </div>
+
+                    <div class="flex justify-end pt-6 border-t border-gray-200 gap-3 pb-20 md:pb-0">
+                        <button type="button" class="px-6 py-3 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 font-bold transition-colors" onclick="toggleModal('produtoModal')">Cancelar</button>
+                        <button type="submit" class="px-8 py-3 rounded-lg text-white bg-pink-600 hover:bg-pink-700 font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 transform active:scale-95"><i data-lucide="check"></i> Salvar Produto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="postModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-[100] py-6">
+        <div class="modal-overlay absolute w-full h-full bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="toggleModal('postModal')"></div>
+        <div class="modal-container bg-white w-11/12 md:max-w-3xl mx-auto rounded-2xl shadow-2xl z-50 overflow-y-auto max-h-full transform transition-all scale-95 opacity-0" id="postModalContent">
+            <div class="modal-content py-6 text-left px-8">
+                <div class="flex justify-between items-center pb-6 border-b border-gray-100">
+                    <p class="text-2xl font-bold text-gray-800" id="postModalTitle">Novo Post</p>
+                    <div class="cursor-pointer z-50 bg-gray-50 p-2 rounded-full hover:bg-gray-100 transition-colors" onclick="toggleModal('postModal')">
+                        <i data-lucide="x" class="text-gray-600 w-6 h-6"></i>
+                    </div>
+                </div>
+                <form id="postForm" action="/admin/post/salvar" method="POST" enctype="multipart/form-data" class="mt-6 space-y-6">
+                    <input type="hidden" name="id" id="postId">
+                    
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">Título do Post*</label>
+                        <input type="text" name="titulo" id="postTitulo" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all" required placeholder="Ex: Lançamento do novo sistema">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">Capa do Post</label>
+                        <img id="preview-post-capa" class="img-preview">
+                        <input type="file" name="capa" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100 cursor-pointer">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">Resumo Curto (Aparece no Card)</label>
+                        <textarea name="resumo" id="postResumo" rows="2" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all resize-y"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">Conteúdo Completo</label>
+                        <textarea name="conteudo" id="postConteudo" rows="10" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all resize-y font-mono text-sm"></textarea>
+                    </div>
+
+                    <div class="flex justify-end pt-6 border-t border-gray-200 gap-3">
+                        <button type="button" class="px-6 py-3 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 font-bold transition-colors" onclick="toggleModal('postModal')">Cancelar</button>
+                        <button type="submit" class="px-8 py-3 rounded-lg text-white bg-pink-600 hover:bg-pink-700 font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2"><i data-lucide="check"></i> Salvar Post</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        lucide.createIcons();
+
+        // --- MENSAGENS FLASH (AUTO-DISMISS) ---
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.flash-message-item');
+                alerts.forEach(alert => {
+                    alert.style.transition = "opacity 0.5s ease";
+                    alert.style.opacity = "0";
+                    setTimeout(() => alert.remove(), 500);
+                });
+            }, 4000); // 4 segundos
+        });
+
+        // --- NAVEGAÇÃO ENTRE SEÇÕES ---
+        function showSection(sectionId) {
+            document.querySelectorAll('main > section, main > form > section').forEach(el => el.classList.add('hidden'));
+            
+            // Tenta achar em sections diretas ou dentro do form
+            const target = document.getElementById(sectionId);
+            if(target) target.classList.remove('hidden');
+            
+            // Atualiza sidebar
+            document.querySelectorAll('aside nav a').forEach(el => {
+                el.classList.remove('bg-pink-50', 'text-pink-600');
+                if(el.getAttribute('href') === '#' + sectionId) {
+                    el.classList.add('bg-pink-50', 'text-pink-600');
+                }
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function selectMenuItem(sectionId) {
+            showSection(sectionId);
+            if(window.innerWidth < 768) { // Só fecha se for mobile
+                toggleMobileMenu();
+            }
+        }
+
+        function toggleMobileMenu() {
+            const nav = document.getElementById('sidebarNav');
+            const chevron = document.getElementById('menuChevron');
+            
+            if (nav.classList.contains('hidden')) {
+                nav.classList.remove('hidden');
+                nav.classList.add('mobile-nav-visible');
+                chevron.style.transform = 'rotate(180deg)';
+            } else {
+                nav.classList.add('hidden');
+                nav.classList.remove('mobile-nav-visible');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Mostra a seção inicial baseada na URL
+        const hash = window.location.hash.replace('#', '');
+        showSection(hash || 'categorias');
+
+        // --- LÓGICA DE MODAIS ---
+        function toggleModal(modalID) {
+            const modal = document.getElementById(modalID);
+            const content = modal.querySelector('.modal-container'); // Pega o container interno
+            
+            modal.classList.toggle('opacity-0');
+            modal.classList.toggle('pointer-events-none');
+            document.body.classList.toggle('modal-active');
+            
+            // Animação de entrada/saída (Scale & Opacity)
+            if (!modal.classList.contains('opacity-0')) {
+                setTimeout(() => {
+                    content.classList.remove('scale-95', 'opacity-0');
+                    content.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            } else {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+            }
+        }
+
+        // --- HELPERS PARA IMAGEM ---
+        function setPreview(imgId, url) {
+            const img = document.getElementById(imgId);
+            if(url && url.length > 5) {
+                img.src = url;
+                img.classList.add('visible');
+            } else {
+                img.classList.remove('visible');
+                img.src = '';
+            }
+        }
+
+        // --- CRUD CATEGORIAS ---
+        function novaCategoria() {
+            document.getElementById('catId').value = '';
+            document.getElementById('catNome').value = '';
+            document.getElementById('catModalTitle').innerText = 'Nova Categoria';
+            toggleModal('categoriaModal');
+        }
+        function editarCategoria(cat) {
+            document.getElementById('catId').value = cat.id;
+            document.getElementById('catNome').value = cat.nome;
+            document.getElementById('catModalTitle').innerText = 'Editar Categoria';
+            toggleModal('categoriaModal');
+        }
+
+        // --- CRUD PRODUTOS ---
+        function novoProduto() {
+            document.getElementById('prodId').value = '';
+            document.getElementById('prodNome').value = '';
+            document.getElementById('prodPreco').value = '';
+            document.getElementById('prodCategoria').value = '';
+            document.getElementById('prodDescricao').value = '';
+            document.getElementById('prodUrgencia').value = 'Normal';
+            document.getElementById('prodOrigem').value = 'Estoque';
+            
+            // Limpa previews
+            setPreview('preview-img', '');
+            setPreview('preview-img1', '');
+            setPreview('preview-img2', '');
+
+            // Limpa inputs file
+            document.querySelectorAll('#produtoForm input[type="file"]').forEach(i => i.value = '');
+
+            document.getElementById('prodModalTitle').innerText = 'Novo Produto';
+            toggleModal('produtoModal');
+        }
+        
+        function editarProduto(prod) {
+            document.getElementById('prodId').value = prod.id;
+            document.getElementById('prodNome').value = prod.nome;
+            document.getElementById('prodPreco').value = prod.preco || '';
+            
+            // Tenta selecionar a categoria (assumindo que prod.categoria_id vem do JSON)
+            // Se o JSON do Flask vier como objeto, precisa tratar. Aqui assumo ID direto ou tratado.
+            let catId = prod.categoria_id; 
+            if(typeof prod.categoria_id === 'object' && prod.categoria_id !== null) catId = prod.categoria_id.id;
+            document.getElementById('prodCategoria').value = catId || '';
+
+            document.getElementById('prodDescricao').value = prod.descricao || '';
+            document.getElementById('prodUrgencia').value = prod.urgencia || 'Normal';
+            document.getElementById('prodOrigem').value = prod.origem || 'Estoque';
+
+            // Previews
+            setPreview('preview-img', prod.imagem);
+            // Se existirem imagens extras no objeto JSON, adicione aqui. 
+            // O template atual não listou imagem1/2 no loop, mas se o backend mandar, use:
+            setPreview('preview-img1', prod.imagem1); 
+            setPreview('preview-img2', prod.imagem2);
+
+            // Limpa inputs file para não reenviar vazio
+            document.querySelectorAll('#produtoForm input[type="file"]').forEach(i => i.value = '');
+
+            document.getElementById('prodModalTitle').innerText = 'Editar Produto';
+            toggleModal('produtoModal');
+        }
+        
+        // --- CRUD POSTS ---
+        function novoPost() {
+            document.getElementById('postId').value = '';
+            document.getElementById('postTitulo').value = '';
+            document.getElementById('postResumo').value = '';
+            document.getElementById('postConteudo').value = '';
+            setPreview('preview-post-capa', '');
+            document.querySelector('#postForm input[name="capa"]').value = '';
+            document.getElementById('postModalTitle').innerText = 'Novo Post';
+            toggleModal('postModal');
+        }
+        function editarPost(post) {
+            document.getElementById('postId').value = post.id || post.slug; // Fallback se ID não vier
+            document.getElementById('postTitulo').value = post.titulo;
+            document.getElementById('postResumo').value = post.resumo || '';
+            document.getElementById('postConteudo').value = post.conteudo || '';
+            
+            setPreview('preview-post-capa', post.capa);
+            document.querySelector('#postForm input[name="capa"]').value = '';
+
+            document.getElementById('postModalTitle').innerText = 'Editar Post';
+            toggleModal('postModal');
+        }
+
+        // --- SORTABLES ---
+        new Sortable(document.getElementById('layout-sortable'), {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function () {
+                const order = [];
+                document.querySelectorAll('#layout-sortable li').forEach(li => order.push(li.getAttribute('data-id')));
+                document.getElementById('layoutOrderInput').value = order.join(',');
+            }
+        });
+
+         new Sortable(document.getElementById('lista-categorias'), {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            handle: '.cursor-move'
+        });
+    </script>
+</body>
+</html>
