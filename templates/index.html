@@ -36,7 +36,7 @@
 
         .slide { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            opacity: 0; transition: opacity 1s ease-in-out; z-index: 0;
+            opacity: 0; transition: opacity 1.5s ease-in-out; z-index: 0;
             display: flex; align-items: center;
         }
         .slide.active { opacity: 1; z-index: 10; }
@@ -93,10 +93,18 @@
     {% set layout = loja.layout_order.split(',') if loja.layout_order else ['banners', 'novidades', 'posts'] %}
     
     {% for section in layout %}
+        {% set sec = section | trim %}
     
-        {% if section == 'banners' and not loja.ocultar_banner %}
+        {% if sec == 'banners' and not loja.ocultar_banner %}
         <section class="slider-container w-full bg-black relative">
             
+            <button onclick="prevSlide()" class="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 z-30 p-2 md:p-3 text-white/50 hover:text-white bg-black/20 hover:bg-black/60 rounded-full backdrop-blur-sm transition-all focus:outline-none">
+                <i data-lucide="chevron-left" class="w-6 h-6 md:w-8 md:h-8"></i>
+            </button>
+            <button onclick="nextSlide()" class="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 z-30 p-2 md:p-3 text-white/50 hover:text-white bg-black/20 hover:bg-black/60 rounded-full backdrop-blur-sm transition-all focus:outline-none">
+                <i data-lucide="chevron-right" class="w-6 h-6 md:w-8 md:h-8"></i>
+            </button>
+
             <div class="slide active">
                 <div class="absolute inset-0">
                     {% if loja.banner1 %}
@@ -106,12 +114,12 @@
                     {% endif %}
                 </div>
                 <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-[#0f172a]/50 to-transparent"></div>
-                <div class="absolute inset-0 container mx-auto px-4 flex items-center justify-start z-10">
-                    <div class="max-w-2xl text-left pl-4 md:pl-12 mt-10 animate-fade-in-up">
+                <div class="absolute inset-0 container mx-auto px-12 md:px-24 flex items-center justify-start z-10">
+                    <div class="max-w-2xl text-left mt-10 animate-fade-in-up">
                         <span class="inline-block py-1 px-3 rounded border border-theme text-theme text-xs font-bold uppercase tracking-widest mb-6 shadow-[0_0_10px_rgba(204,255,0,0.2)]">Soluções SaaS sob Medida</span>
-                        <h2 class="text-5xl md:text-7xl font-display font-bold leading-none mb-6 text-white">Plataformas <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Prontas</span></h2>
-                        <p class="text-gray-300 text-base md:text-xl mb-10 font-light max-w-lg leading-relaxed">Crie sua conta e comece a usar em minutos. Ecossistema completo com apps para motoboys, cardápios e comércio.</p>
-                        <a href="#lancamentos" class="bg-theme text-black font-bold py-4 px-10 rounded-full transition-all inline-flex items-center gap-3 hover:scale-105 shadow-[0_0_20px_rgba(204,255,0,0.3)]">Ver Soluções <i data-lucide="arrow-down-right" class="w-5 h-5"></i></a>
+                        <h2 class="text-4xl md:text-7xl font-display font-bold leading-none mb-6 text-white">Plataformas <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Prontas</span></h2>
+                        <p class="text-gray-300 text-sm md:text-xl mb-10 font-light max-w-lg leading-relaxed">Crie sua conta e comece a usar em minutos. Ecossistema completo com apps para motoboys, cardápios e comércio.</p>
+                        <a href="#lancamentos" class="bg-theme text-black font-bold py-3 md:py-4 px-8 md:px-10 rounded-full transition-all inline-flex items-center gap-3 hover:scale-105 shadow-[0_0_20px_rgba(204,255,0,0.3)]">Ver Soluções <i data-lucide="arrow-down-right" class="w-5 h-5"></i></a>
                     </div>
                 </div>
             </div>
@@ -127,12 +135,12 @@
                     {% endif %}
                 </div>
                 <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-[#0f172a]/50 to-transparent"></div>
-                <div class="absolute inset-0 container mx-auto px-4 flex items-center justify-start z-10">
-                    <div class="max-w-2xl text-left pl-4 md:pl-12 mt-10 animate-fade-in-up">
+                <div class="absolute inset-0 container mx-auto px-12 md:px-24 flex items-center justify-start z-10">
+                    <div class="max-w-2xl text-left mt-10 animate-fade-in-up">
                         <span class="inline-block py-1 px-3 rounded border border-theme text-theme text-xs font-bold uppercase tracking-widest mb-6 shadow-[0_0_10px_rgba(204,255,0,0.2)]">Engenharia de Processos</span>
-                        <h2 class="text-5xl md:text-7xl font-display font-bold leading-none mb-6 text-white">Piloto <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Automático</span></h2>
-                        <p class="text-gray-300 text-base md:text-xl mb-10 font-light max-w-lg leading-relaxed">Reduza custos operacionais com integrações inteligentes no n8n, WhatsApp e projetos de alta performance sob medida.</p>
-                        <button onclick="toggleCart()" class="bg-transparent border-2 border-theme text-theme font-bold py-4 px-10 rounded-full transition-all inline-flex items-center gap-3 hover:bg-theme hover:text-black shadow-[0_0_20px_rgba(204,255,0,0.1)]">Falar com Consultor <i data-lucide="message-square" class="w-5 h-5"></i></button>
+                        <h2 class="text-4xl md:text-7xl font-display font-bold leading-none mb-6 text-white">Piloto <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">Automático</span></h2>
+                        <p class="text-gray-300 text-sm md:text-xl mb-10 font-light max-w-lg leading-relaxed">Reduza custos operacionais com integrações inteligentes no n8n, WhatsApp e projetos de alta performance sob medida.</p>
+                        <button onclick="toggleCart()" class="bg-transparent border-2 border-theme text-theme font-bold py-3 md:py-4 px-8 md:px-10 rounded-full transition-all inline-flex items-center gap-3 hover:bg-theme hover:text-black shadow-[0_0_20px_rgba(204,255,0,0.1)]">Falar com Consultor <i data-lucide="message-square" class="w-5 h-5"></i></button>
                     </div>
                 </div>
             </div>
@@ -144,7 +152,7 @@
         </section>
         {% endif %}
 
-        {% if section == 'novidades' and not loja.ocultar_novidades %}
+        {% if sec == 'novidades' and not loja.ocultar_novidades %}
         <section class="py-24 relative" id="lancamentos">
             <div class="absolute inset-0 bg-gradient-to-b from-[#0f172a] to-black opacity-50"></div>
             <div class="container mx-auto px-4 relative z-10">
@@ -189,7 +197,7 @@
         </section>
         {% endif %}
 
-        {% if section == 'posts' or section == 'blog' %}
+        {% if sec == 'posts' or sec == 'blog' %}
             {% if not loja.ocultar_blog and posts|length > 0 %}
             <section class="py-24 bg-black relative border-t border-gray-800" id="cases">
                 <div class="container mx-auto px-4">
@@ -290,7 +298,6 @@
 
         function removeFromCart(idx) { cart.splice(idx, 1); saveCart(); }
 
-        // Nova função segura para adicionar ao carrinho lendo os atributos do botão
         function addToCart(btn) {
             const product = {
                 id: btn.getAttribute('data-id'),
@@ -322,10 +329,10 @@
 
         updateCartUI();
 
-        // Lógica do Slider de Banners
         let currentSlide = 0;
         const slides = document.querySelectorAll('.slider-container .slide');
         const dots = document.querySelectorAll('.slider-dot');
+        let slideInterval;
 
         function goToSlide(n) {
             if(slides.length === 0) return;
@@ -345,12 +352,32 @@
             }
         }
 
-        if (slides.length > 1) {
-            setInterval(() => {
-                let next = (currentSlide + 1) % slides.length;
-                goToSlide(next);
-            }, 6000); // Passa a cada 6 segundos
+        function startSlide() {
+            if (slides.length > 1) {
+                slideInterval = setInterval(() => {
+                    let next = (currentSlide + 1) % slides.length;
+                    goToSlide(next);
+                }, 10000); 
+            }
         }
+
+        function nextSlide() {
+            if(slides.length <= 1) return;
+            clearInterval(slideInterval);
+            let next = (currentSlide + 1) % slides.length;
+            goToSlide(next);
+            startSlide();
+        }
+
+        function prevSlide() {
+            if(slides.length <= 1) return;
+            clearInterval(slideInterval);
+            let prev = (currentSlide - 1 + slides.length) % slides.length;
+            goToSlide(prev);
+            startSlide();
+        }
+        
+        startSlide();
     </script>
 </body>
 </html>
