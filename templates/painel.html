@@ -54,7 +54,7 @@
                     <i data-lucide="external-link" class="w-4 h-4"></i> <span class="hidden md:inline">Ver Loja</span>
                 </a>
                 <div class="h-6 w-px bg-gray-300 mx-1"></div>
-                <a href="/logout" class="text-red-500 hover:text-red-700 flex items-center gap-1 text-sm font-bold transition-colors">
+                <a href="/tecnologia/admin/logout" class="text-red-500 hover:text-red-700 flex items-center gap-1 text-sm font-bold transition-colors">
                     <i data-lucide="log-out" class="w-4 h-4"></i> Sair
                 </a>
             </div>
@@ -124,7 +124,7 @@
                                 <button onclick='editarCategoria({{ cat | tojson }})' class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                                     <i data-lucide="edit-2" class="w-4 h-4"></i>
                                 </button>
-                                <a href="/admin/categoria/excluir/{{ cat.id }}" class="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors" onclick="return confirm('Tem certeza que deseja excluir esta categoria? Os produtos nela ficarão sem categoria.')" title="Excluir">
+                                <a href="/tecnologia/admin/categoria/excluir/{{ cat.id }}" class="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors" onclick="return confirm('Tem certeza que deseja excluir esta categoria? Os produtos nela ficarão sem categoria.')" title="Excluir">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </a>
                             </div>
@@ -204,7 +204,7 @@
                                         <button onclick='editarProduto({{ prod | tojson }})' class="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-lg hover:bg-blue-100 transition-colors">
                                             <i data-lucide="edit-3" class="w-4 h-4"></i>
                                         </button>
-                                        <a href="/admin/produto/excluir/{{ prod.id }}" class="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-lg hover:bg-red-100 transition-colors" onclick="return confirm('Tem certeza? Isso não pode ser desfeito.')">
+                                        <a href="/tecnologia/admin/produto/excluir/{{ prod.id }}" class="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-lg hover:bg-red-100 transition-colors" onclick="return confirm('Tem certeza? Isso não pode ser desfeito.')">
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                                         </a>
                                     </div>
@@ -239,7 +239,7 @@
                             {% endif %}
                             <div class="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button onclick='editarPost({{ post | tojson }})' class="bg-white text-blue-600 p-2 rounded-full shadow-lg hover:text-blue-800"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
-                                <a href="/admin/post/excluir/{{ post.slug }}" onclick="return confirm('Excluir post?')" class="bg-white text-red-600 p-2 rounded-full shadow-lg hover:text-red-800"><i data-lucide="trash-2" class="w-4 h-4"></i></a>
+                                <a href="/tecnologia/admin/post/excluir/{{ post.slug }}" onclick="return confirm('Excluir post?')" class="bg-white text-red-600 p-2 rounded-full shadow-lg hover:text-red-800"><i data-lucide="trash-2" class="w-4 h-4"></i></a>
                             </div>
                         </div>
                         <div class="p-4 flex-1 flex flex-col">
@@ -256,7 +256,7 @@
                 </div>
             </section>
 
-            <form action="/admin/painel/salvar" method="POST" enctype="multipart/form-data">
+            <form action="/tecnologia/admin/painel/salvar" method="POST" enctype="multipart/form-data">
                 
                 <section id="layout" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hidden space-y-8">
                     <div class="border-b border-gray-100 pb-4">
@@ -431,7 +431,7 @@
                         <i data-lucide="x" class="text-gray-500 w-5 h-5"></i>
                     </div>
                 </div>
-                <form id="categoriaForm" action="/admin/categoria/salvar" method="POST">
+                <form id="categoriaForm" action="/tecnologia/admin/categoria/salvar" method="POST">
                     <input type="hidden" name="id" id="catId">
                     <div class="mb-6">
                         <label class="block text-sm font-bold mb-2 text-gray-700">Nome da Categoria</label>
@@ -459,7 +459,7 @@
                         <i data-lucide="x" class="text-gray-600 w-6 h-6"></i>
                     </div>
                 </div>
-                <form id="produtoForm" action="/admin/produto/salvar" method="POST" enctype="multipart/form-data" class="mt-6 space-y-6">
+                <form id="produtoForm" action="/tecnologia/admin/produto/salvar" method="POST" enctype="multipart/form-data" class="mt-6 space-y-6">
                     <input type="hidden" name="id" id="prodId">
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -550,7 +550,7 @@
                         <i data-lucide="x" class="text-gray-600 w-6 h-6"></i>
                     </div>
                 </div>
-                <form id="postForm" action="/admin/post/salvar" method="POST" enctype="multipart/form-data" class="mt-6 space-y-6">
+                <form id="postForm" action="/tecnologia/admin/post/salvar" method="POST" enctype="multipart/form-data" class="mt-6 space-y-6">
                     <input type="hidden" name="id" id="postId">
                     
                     <div>
