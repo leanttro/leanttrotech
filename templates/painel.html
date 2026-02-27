@@ -159,6 +159,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</th>
                                 <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Preço</th>
                                 <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">SKU (Link)</th>
                                 <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
                             </tr>
                         </thead>
@@ -199,6 +200,9 @@
                                     </span>
                                     {% endif %}
                                 </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs text-pink-600 font-mono">
+                                    {{ prod.sku or '-' }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
                                         <button onclick='editarProduto({{ prod | tojson }})' class="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-lg hover:bg-blue-100 transition-colors">
@@ -211,7 +215,7 @@
                                 </td>
                             </tr>
                              {% else %}
-                            <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500 flex flex-col items-center justify-center w-full"><i data-lucide="package-open" class="w-10 h-10 mb-2 opacity-30"></i>Nenhum produto cadastrado.</td></tr>
+                            <tr><td colspan="6" class="px-6 py-12 text-center text-gray-500 flex flex-col items-center justify-center w-full"><i data-lucide="package-open" class="w-10 h-10 mb-2 opacity-30"></i>Nenhum produto cadastrado.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -244,6 +248,7 @@
                         </div>
                         <div class="p-4 flex-1 flex flex-col">
                              <h3 class="font-bold text-gray-800 line-clamp-1 mb-1">{{ post.titulo }}</h3>
+                             <p class="text-xs text-pink-500 font-mono line-clamp-1 mb-2">{{ post.sku or 'Sem link' }}</p>
                              <p class="text-xs text-gray-400 mb-2">{{ post.data }}</p>
                              <p class="text-sm text-gray-600 line-clamp-3 mb-4">{{ post.resumo }}</p>
                         </div>
@@ -504,6 +509,11 @@
                                 </select>
                             </div>
                         </div>
+
+                        <div class="col-span-2">
+                            <label class="block text-sm font-bold mb-2 text-gray-700">Link do Projeto (SKU)</label>
+                            <input type="text" name="sku" id="prodSku" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all" placeholder="https://...">
+                        </div>
                     </div>
 
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -562,6 +572,11 @@
                         <label class="block text-sm font-bold mb-2 text-gray-700">Capa do Post</label>
                         <img id="preview-post-capa" class="img-preview">
                         <input type="file" name="capa" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100 cursor-pointer">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold mb-2 text-gray-700">Link Externo (SKU)</label>
+                        <input type="text" name="sku" id="postSku" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all" placeholder="https://...">
                     </div>
 
                     <div>
@@ -695,6 +710,7 @@
             document.getElementById('prodId').value = '';
             document.getElementById('prodNome').value = '';
             document.getElementById('prodPreco').value = '';
+            document.getElementById('prodSku').value = '';
             document.getElementById('prodCategoria').value = '';
             document.getElementById('prodDescricao').value = '';
             document.getElementById('prodUrgencia').value = 'Normal';
@@ -716,6 +732,7 @@
             document.getElementById('prodId').value = prod.id;
             document.getElementById('prodNome').value = prod.nome;
             document.getElementById('prodPreco').value = prod.preco || '';
+            document.getElementById('prodSku').value = prod.sku || '';
             
             // Tenta selecionar a categoria (assumindo que prod.categoria_id vem do JSON)
             // Se o JSON do Flask vier como objeto, precisa tratar. Aqui assumo ID direto ou tratado.
@@ -745,6 +762,7 @@
         function novoPost() {
             document.getElementById('postId').value = '';
             document.getElementById('postTitulo').value = '';
+            document.getElementById('postSku').value = '';
             document.getElementById('postResumo').value = '';
             document.getElementById('postConteudo').value = '';
             setPreview('preview-post-capa', '');
@@ -755,6 +773,7 @@
         function editarPost(post) {
             document.getElementById('postId').value = post.id || post.slug; // Fallback se ID não vier
             document.getElementById('postTitulo').value = post.titulo;
+            document.getElementById('postSku').value = post.sku || '';
             document.getElementById('postResumo').value = post.resumo || '';
             document.getElementById('postConteudo').value = post.conteudo || '';
             

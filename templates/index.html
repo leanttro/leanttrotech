@@ -202,6 +202,11 @@
                             </p>
                             
                             <div class="mt-auto">
+                                {% if p.sku %}
+                                <a href="{{ p.sku }}" target="_blank" class="w-full bg-transparent border border-gray-600 hover:border-theme text-white hover:text-black hover:bg-theme font-bold py-4 px-4 rounded-xl text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 mb-3">
+                                    Acessar Projeto <i data-lucide="external-link" class="w-4 h-4"></i>
+                                </a>
+                                {% endif %}
                                 <button onclick="addToCart(this)" data-id="{{ p.id }}" data-nome="{{ p.nome }}" data-imagem="{{ p.imagem }}" class="w-full bg-transparent border border-gray-600 hover:border-theme text-white hover:text-black hover:bg-theme font-bold py-4 px-4 rounded-xl text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2">
                                     Iniciar Projeto <i data-lucide="arrow-right" class="w-4 h-4"></i>
                                 </button>
@@ -235,6 +240,11 @@
                                 <h3 class="font-bold text-2xl mb-4 text-white group-hover:text-purple-400 transition-colors">{{ post.titulo }}</h3>
                                 <p class="text-base text-gray-400 line-clamp-2 leading-relaxed">{{ post.resumo }}</p>
                                 <span class="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-theme mt-6">Explorar Case <i data-lucide="arrow-up-right" class="w-4 h-4"></i></span>
+                                {% if post.sku %}
+                                <span class="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gray-400 hover:text-theme mt-6 ml-4" onclick="window.open('{{ post.sku }}', '_blank'); event.preventDefault();">
+                                    <i data-lucide="external-link" class="w-4 h-4"></i> Link Externo
+                                </span>
+                                {% endif %}
                             </div>
                         </a>
                         {% endfor %}

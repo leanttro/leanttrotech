@@ -116,7 +116,8 @@ def index():
                     "origem": p.get('origem', 'Estoque'), 
                     "urgencia": p.get('status_urgencia', 'Normal'), 
                     "variantes": variantes_tratadas,
-                    "categoria_id": p.get('categoria_id')
+                    "categoria_id": p.get('categoria_id'),
+                    "sku": p.get('sku')
                 })
     except Exception as e: print(f"Erro Index: {e}")
 
@@ -130,7 +131,7 @@ def index():
                 if p.get('date_created'):
                     try: dt = datetime.fromisoformat(p['date_created'].replace('Z', '+00:00')); data_fmt = dt.strftime('%d/%m/%Y')
                     except: pass
-                posts.append({"titulo": p.get('titulo'), "resumo": p.get('resumo'), "capa": get_img_url(p.get('capa')), "slug": p.get('slug'), "data": data_fmt})
+                posts.append({"titulo": p.get('titulo'), "resumo": p.get('resumo'), "capa": get_img_url(p.get('capa')), "slug": p.get('slug'), "data": data_fmt, "sku": p.get('sku')})
     except: pass
 
     return render_template('index.html', loja=loja, categorias=categorias, produtos=produtos, posts=posts, directus_url=DIRECTUS_URL)
@@ -157,7 +158,8 @@ def produto_detalhe(slug):
                 "preco": float(p['preco']) if p.get('preco') else None,
                 "imagem": img_url,
                 "urgencia": p.get('status_urgencia', 'Normal'),
-                "categoria_nome": cat_nome
+                "categoria_nome": cat_nome,
+                "sku": p.get('sku')
             }
             return render_template('produto.html', loja=loja, produto=produto_data, directus_url=DIRECTUS_URL)
         return "Produto não encontrado", 404
@@ -179,7 +181,7 @@ def case_detalhe(slug):
                 except: pass
             post_data = {
                 "titulo": p.get('titulo'), "resumo": p.get('resumo'), "conteudo": p.get('conteudo'),
-                "capa": get_img_url(p.get('capa')), "data": data_fmt, "autor": "Equipe " + loja['nome']
+                "capa": get_img_url(p.get('capa')), "data": data_fmt, "autor": "Equipe " + loja['nome'], "sku": p.get('sku')
             }
             return render_template('cases.html', loja=loja, case=post_data, directus_url=DIRECTUS_URL)
         return "Case não encontrado", 404
@@ -243,10 +245,12 @@ def admin_painel():
     
     produtos = []
     try:
-        resp = requests.get(f"{DIRECTUS_URL}/items/produtos?filter[loja_id][_eq]={LOJA_ID}&fields=id,nome,preco,imagem_destaque,estoque,categoria_id.nome,status_urgencia,origem", headers=get_headers())
+        resp = requests.get(f"{DIRECTUS_URL}/items/produtos?filter[loja_id][_eq]={LOJA_ID}&fields=id,nome,preco,imagem_destaque,imagem1,imagem2,estoque,categoria_id.id,categoria_id.nome,status_urgencia,origem,sku,descricao", headers=get_headers())
         if resp.status_code == 200:
             for p in resp.json().get('data', []):
                 p['imagem'] = get_img_url(p.get('imagem_destaque'))
+                p['imagem1'] = get_img_url(p.get('imagem1'))
+                p['imagem2'] = get_img_url(p.get('imagem2'))
                 p['categoria_nome'] = p.get('categoria_id', {}).get('nome') if isinstance(p.get('categoria_id'), dict) else "Sem Categoria"
                 
                 # CORREÇÃO DO ERRO 500: Converter preço para float
@@ -261,7 +265,7 @@ def admin_painel():
 
     posts = []
     try:
-        resp = requests.get(f"{DIRECTUS_URL}/items/posts?filter[loja_id][_eq]={LOJA_ID}&fields=id,slug,titulo,date_created,capa,resumo", headers=get_headers())
+        resp = requests.get(f"{DIRECTUS_URL}/items/posts?filter[loja_id][_eq]={LOJA_ID}&fields=id,slug,titulo,date_created,capa,resumo,conteudo,sku", headers=get_headers())
         if resp.status_code == 200:
             for p in resp.json().get('data', []):
                 p['capa'] = get_img_url(p.get('capa'))
@@ -321,6 +325,7 @@ def admin_salvar_produto():
         "loja_id": LOJA_ID,
         "nome": request.form.get('nome'),
         "slug": slug,
+        "sku": request.form.get('sku'),
         "descricao": request.form.get('descricao'),
         "preco": request.form.get('preco') if request.form.get('preco') else None,
         "categoria_id": request.form.get('categoria_id') if request.form.get('categoria_id') else None,
@@ -352,6 +357,7 @@ def admin_salvar_post():
         "loja_id": LOJA_ID,
         "titulo": request.form.get('titulo'),
         "slug": slug,
+        "sku": request.form.get('sku'),
         "resumo": request.form.get('resumo'),
         "conteudo": request.form.get('conteudo')
     }

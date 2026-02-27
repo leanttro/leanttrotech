@@ -69,6 +69,13 @@
                             </div>
                         </div>
 
+                        {% if produto.sku %}
+                        <a href="{{ produto.sku }}" target="_blank" class="w-full bg-gray-900 hover:bg-black text-white font-bold text-lg py-5 rounded-2xl shadow-xl hover:shadow-gray-900/30 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3 mb-4">
+                            <i data-lucide="external-link" class="w-6 h-6"></i>
+                            Acessar Projeto Online
+                        </a>
+                        {% endif %}
+
                         <button onclick="comprarAgora()" class="w-full bg-secondary hover:bg-theme text-white font-bold text-lg py-5 rounded-2xl shadow-xl shadow-gray-200 hover:shadow-purple-500/30 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3">
                             <i data-lucide="shopping-bag" class="w-6 h-6"></i>
                             Adicionar à Sacola
