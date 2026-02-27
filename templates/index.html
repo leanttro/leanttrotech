@@ -180,14 +180,14 @@
 
                 <div id="products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {% for p in produtos[:12] %}
-                    <div class="glass-card rounded-2xl overflow-hidden hover:-translate-y-2 transition-all duration-300 group flex flex-col hover:shadow-[0_10px_30px_rgba(204,255,0,0.1)] hover:border-theme/50">
+                    <div class="product-card glass-card rounded-2xl overflow-hidden hover:-translate-y-2 transition-all duration-300 group flex flex-col hover:shadow-[0_10px_30px_rgba(204,255,0,0.1)] hover:border-theme/50">
                         <a href="/tecnologia/produto/{{ p.slug }}" class="aspect-video bg-gray-900 relative overflow-hidden block flex items-center justify-center">
                             <div class="absolute inset-0 bg-gradient-to-t from-[#1e293b] to-transparent opacity-80 z-0 pointer-events-none"></div>
                             <img src="{{ p.imagem }}" alt="{{ p.nome }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 z-10">
                         </a>
                         <div class="p-8 flex flex-col flex-grow">
                             <span class="text-theme text-xs font-bold uppercase tracking-widest mb-3 block">{{ p.categoria_nome or 'Software' }}</span>
-                            <a href="/tecnologia/produto/{{ p.slug }}" class="font-bold font-display text-2xl mb-4 text-white group-hover:text-theme transition-colors">{{ p.nome }}</a>
+                            <a href="/tecnologia/produto/{{ p.slug }}" class="product-title font-bold font-display text-2xl mb-4 text-white group-hover:text-theme transition-colors">{{ p.nome }}</a>
                             
                             <p class="text-gray-400 text-sm mb-8 line-clamp-2">
                                 {% if 'loja' in p.nome|lower or 'virtual' in p.nome|lower %}
@@ -408,6 +408,20 @@
         
         if (window.location.search.includes('open_cart=true')) {
             setTimeout(toggleCart, 500);
+        }
+
+        function searchProducts() {
+            let input = document.getElementById('search-input').value.toLowerCase();
+            let cards = document.querySelectorAll('.product-card');
+            
+            cards.forEach(card => {
+                let title = card.querySelector('.product-title').innerText.toLowerCase();
+                if (title.includes(input)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
         }
     </script>
 </body>
