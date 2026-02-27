@@ -48,13 +48,20 @@ def get_loja_data():
             resp = requests.get(url, headers=get_headers())
             if resp.status_code == 200:
                 data = resp.json().get('data', {})
+                
+                # CORREÇÃO DA LOGO: Extrai o ID caso venha como objeto do Directus
                 logo_raw = data.get('logo')
-                logo_final = logo_raw.get('id') if isinstance(logo_raw, dict) else logo_raw
+                if isinstance(logo_raw, dict):
+                    data['logo'] = logo_raw.get('id')
+                
+                # Mapeia URLs completas para os banners aparecerem no front
+                data['banner1'] = get_img_url(data.get('bannerprincipal1'))
+                data['banner2'] = get_img_url(data.get('bannerprincipal2'))
                 
                 # Campos extras para o admin
-                data['logo_url'] = get_img_url(logo_final)
-                data['banner1_url'] = get_img_url(data.get('bannerprincipal1'))
-                data['banner2_url'] = get_img_url(data.get('bannerprincipal2'))
+                data['logo_url'] = get_img_url(data.get('logo'))
+                data['banner1_url'] = data['banner1']
+                data['banner2_url'] = data['banner2']
                 data['bannermenor1_url'] = get_img_url(data.get('bannermenor1'))
                 data['bannermenor2_url'] = get_img_url(data.get('bannermenor2'))
                 
