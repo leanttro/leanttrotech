@@ -90,7 +90,7 @@
         </div>
     </div>
 
-    {% set layout = loja.layout_order.split(',') if loja.layout_order else ['banners', 'novidades', 'posts'] %}
+    {% set layout = loja.layout_order.split(',') if loja.layout_order else ['banners', 'categorias', 'produtos', 'posts'] %}
     
     {% for section in layout %}
         {% set sec = section | trim %}
@@ -152,12 +152,29 @@
         </section>
         {% endif %}
 
-        {% if sec == 'novidades' and not loja.ocultar_novidades %}
+        {% if sec == 'categorias' %}
+        <section class="py-12 relative z-20 bg-transparent" id="categorias-list">
+            <div class="container mx-auto px-4">
+                <div class="flex flex-wrap items-center justify-center gap-4 animate-fade-in-up">
+                    <a href="/tecnologia/" class="px-6 py-2 rounded-full text-sm font-bold uppercase tracking-widest transition-all {% if not request.args.get('categoria') %}bg-theme text-black shadow-[0_0_15px_rgba(204,255,0,0.3)]{% else %}bg-[#1e293b] text-gray-400 border border-gray-700 hover:border-theme hover:text-white{% endif %}">
+                        Todos
+                    </a>
+                    {% for cat in categorias %}
+                    <a href="/tecnologia/?categoria={{ cat.id }}" class="px-6 py-2 rounded-full text-sm font-bold uppercase tracking-widest transition-all {% if request.args.get('categoria') == cat.id|string %}bg-theme text-black shadow-[0_0_15px_rgba(204,255,0,0.3)]{% else %}bg-[#1e293b] text-gray-400 border border-gray-700 hover:border-theme hover:text-white{% endif %}">
+                        {{ cat.nome }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if sec == 'produtos' or sec == 'novidades' %}
         <section class="py-24 relative" id="lancamentos">
             <div class="absolute inset-0 bg-gradient-to-b from-[#0f172a] to-black opacity-50"></div>
             <div class="container mx-auto px-4 relative z-10">
                 <div class="text-center mb-16 animate-fade-in-up">
-                    <h2 class="text-3xl md:text-5xl font-display font-bold mb-4 text-white">{{ loja.titulo_novidades or "Nossos Softwares" }}</h2>
+                    <h2 class="text-3xl md:text-5xl font-display font-bold mb-4 text-white">{{ loja.titulo_produtos or loja.titulo_novidades or "Nossos Softwares" }}</h2>
                     <p class="text-gray-400 max-w-2xl mx-auto text-lg">Ecossistemas completos desenvolvidos para escalar a sua operação.</p>
                 </div>
 
@@ -378,6 +395,10 @@
         }
         
         startSlide();
+        
+        if (window.location.search.includes('open_cart=true')) {
+            setTimeout(toggleCart, 500);
+        }
     </script>
 </body>
 </html>
